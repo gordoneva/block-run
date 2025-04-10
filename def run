@@ -1,0 +1,41 @@
+def run(self):
+        print(f"\n=== DeltaBot для Finandy/OKX (SHORT) ===")
+        print(f"Сигнал на продажу при дельте ≤{delta_threshold} BTC\n")
+
+        while True:
+            try:
+                delta = self.get_15m_delta()
+                current_price = exchange.fetch_ticker(symbol)['last']
+
+                print(f"{datetime.now().strftime('%H:%M:%S')} | Цена: {current_price:.2f} | Дельта: {delta:.2f} BTC", end=" ")
+
+                self.check_open_positions()
+
+                if self.positions:
+                    print(f"| Позиция: {len(self.positions)} | Средняя цена: {self.calculate_average_price():.2f}", end=" ")
+
+                if delta <= delta_threshold:
+                    if self.positions:
+                        if current_price > self.calculate_average_price() * (1 + price_range) and current_price > self.calculate_average_price():
+                            print(f"| --- Усреднение (шорт) на сумму: {initial_amount * (multiplier ** len(self.positions)):.2f} USDT ---")
+                            self.send_finandy_signal(amount=f"{initial_amount * (multiplier ** len(self.positions)):.2f}")
+                            amount_btc = initial_amount * (multiplier ** len(self.positions)) / current_price
+                            self.update_position(current_price, -amount_btc)
+                        # Убрал лишние логи else для усреднения
+                    else:
+                        print(f"| Вход в шорт на сумму: {initial_amount:.2f} USDT")
+                        self.send_finandy_signal(amount=f"{initial_amount:.2f}")
+                        amount_btc = initial_amount / current_price
+                        self.add_position(current_price, -amount_btc)
+
+                else:
+                    print("") # Просто новая строка, если нет действий
+
+                time.sleep(1)
+
+            except KeyboardInterrupt:
+                print("\n Ручная остановка")
+                break
+            except Exception as e:
+                print(f"\n⚠️ Ошибка: {str(e)}")
+                time.sleep(30)
